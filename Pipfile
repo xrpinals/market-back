@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+peewee = "3.15.1"
+pymysql = "0.9.3"
+fastapi = "0.70.0"
+uvicorn = "0.15.0"
+mypy = "0.910"
+python-dotenv = "0.20.0"
+redis = "3.5.3"
+requests = "2.31.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"
