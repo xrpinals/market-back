@@ -99,7 +99,7 @@ def block_consuming() -> None:
                     if op is None:
                         continue
 
-                    market_state = query_market_state_by_market_id(op.get("contract_id")) is None
+                    market_state = query_market_state_by_market_id(op.get("contract_id"))
                     if market_state is None:
                         # Ignore if it's a contract we don't care about
                         continue
@@ -157,7 +157,7 @@ def block_consuming() -> None:
                     market_state.state_height = next_consuming_height
                     market_state.state_timestamp = block_datetime
 
-                    TMarketState.update(market_state)
+                    TMarketState.update(market_state).execute()
 
                 else:
                     pass
