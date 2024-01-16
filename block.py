@@ -2,6 +2,8 @@
 # encoding: utf-8
 import threading
 import time
+from typing import Optional
+
 from crud import *
 from rpc import *
 from utils import *
@@ -15,7 +17,7 @@ class TxType(IntEnum):
     TxTypeOther = 3
 
 
-def parse_tx_type(tx):
+def parse_tx_type(tx) -> TxType:
     for op in tx.get("operations"):
         if op[0] == TxType.TxTypeContractRegister.value:
             return TxType.TxTypeContractRegister
@@ -24,14 +26,14 @@ def parse_tx_type(tx):
     return TxType.TxTypeOther
 
 
-def parse_tx_contract_register_result(tx_receipt):
+def parse_tx_contract_register_result(tx_receipt) -> (bool, Optional[str], Optional[str]):
     for obj in tx_receipt:
         if obj.get("exec_succeed"):
             return True, obj.get("invoker"), obj.get("contract_registed")
     return False, None, None
 
 
-def block_consuming():
+def block_consuming() -> None:
     while Application.consuming_thread_running:
         latest_height = http_get_block_height(Application.setting.API_URL)
         next_consuming_height = int(query_next_consume_height().value)
@@ -50,13 +52,27 @@ def block_consuming():
 
                 tx_type = parse_tx_type(tx)
                 if tx_type == TxType.TxTypeOther:
+                    # Ignore irrelevant transactions
                     continue
 
                 tx_receipt = http_get_contract_invoke_object(Application.setting.API_URL, next_consuming_height)
                 if tx_type == TxType.TxTypeContractRegister:
                     exec_succeed, invoker, contract_registed = parse_tx_contract_register_result(tx_receipt)
                     if not exec_succeed:
+                        # Ignore unsuccessful registration contracts
                         continue
+
+                    printable_bytecode = http_get_contract_printable_bytecode(Application.setting.API_URL,
+                                                                              contract_registed)
+                    if Application.otc_ex_bytecode_hex != printable_bytecode:
+                        # Ignore unrelated contracts
+                        continue
+
+                    TMarketState.insert(market_id=contract_registed, creater=invoker,
+                                        create_height=next_consuming_height,
+                                        state_orders="[]", state_height=next_consuming_height,
+                                        state_timestamp=block_datetime, created_at=datetime.now(),
+                                        updated_at=datetime.now()).execute()
 
                 elif tx_type == TxType.TxTypeContractInvoke:
                     pass
@@ -67,7 +83,7 @@ def block_consuming():
             update_next_consume_height(next_consuming_height)
 
 
-def run_block_consuming_thread():
+def run_block_consuming_thread() -> None:
     Application.consuming_thread = threading.Thread(target=block_consuming, daemon=False)
     Application.consuming_thread_running = True
     Application.consuming_thread.start()

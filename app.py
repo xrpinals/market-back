@@ -8,7 +8,7 @@ from playhouse.shortcuts import ReconnectMixin  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware
 from db import database_proxy  # type: ignore
 
-from config import configs, Application
+from config import configs, Application, DevelopmentConfig
 
 
 class ReconnectMixinNew(ReconnectMixin):
@@ -39,8 +39,8 @@ class ReconnectMySQLDatabase(ReconnectMixinNew, MySQLDatabase, ABC):
     pass
 
 
-def create_app(config_name):
-    setting = configs[config_name]
+def create_app(config_name: str) -> FastAPI:
+    setting = configs.get(config_name, DevelopmentConfig)
     Application.setting = setting
 
     f = open("contract/otc-ex.bytecode.hex", "r")

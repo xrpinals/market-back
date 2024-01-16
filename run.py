@@ -13,7 +13,7 @@ from config import Application
 from app import create_app
 
 
-def handle_sig(sig, frame):
+def handle_sig(sig: int, _) -> None:
     print("Caught Signal: %d, Please wait a few seconds for Consuming Thread Stopping..." % sig)
     Application.consuming_thread_running = False
     Application.consuming_thread.join()
@@ -23,7 +23,7 @@ def handle_sig(sig, frame):
 
 if __name__ == "__main__":
     load_dotenv()
-    use_config = os.environ.get("USE_CONFIG")
+    use_config = os.environ.get("USE_CONFIG", "development")
 
     app = create_app(use_config)
     run_block_consuming_thread()
