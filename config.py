@@ -40,3 +40,6 @@ configs = {
 
 class Application(object):
     setting = None
+    otc_ex_bytecode_hex = ""
+    consuming_thread = None
+    consuming_thread_running = False

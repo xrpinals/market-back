@@ -41,8 +41,14 @@ class ReconnectMySQLDatabase(ReconnectMixinNew, MySQLDatabase, ABC):
 
 def create_app(config_name):
     setting = configs[config_name]
-
     Application.setting = setting
+
+    f = open("contract/otc-ex.bytecode.hex", "r")
+    Application.otc_ex_bytecode_hex = f.read(1024 * 1024) \
+        .lstrip().rstrip() \
+        .replace("\n", "") \
+        .replace("\r", "")
+
     db = ReconnectMySQLDatabase(
         setting.DATABASE_NAME, autocommit=True, autorollback=True,
         **{'host': setting.DATABASE_HOST, 'port': setting.DATABASE_PORT,

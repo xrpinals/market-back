@@ -3,7 +3,7 @@
 ### How to generate original model file from database
 
 ```shell script
-python -m pwiz -e mysql -H DB_HOST -p DB_PORT -u DB_USER -P DB_NAME > db.py
+python -m pwiz -e mysql -H DB_HOST -p DB_PORT -u DB_USER -P DB_NAME > orig_db.py
 ```
 
 ### Update .env file
