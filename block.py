@@ -2,7 +2,7 @@
 # encoding: utf-8
 import threading
 import time
-from typing import Optional
+from typing import Dict
 
 from crud import *
 from rpc import *
@@ -30,6 +30,13 @@ def parse_tx_contract_register_result(tx_receipt) -> (bool, Optional[str], Optio
     for obj in tx_receipt:
         if obj.get("exec_succeed"):
             return True, obj.get("invoker"), obj.get("contract_registed")
+    return False, None, None
+
+
+def parse_tx_contract_invoke_result(tx_receipt) -> (bool, Optional[str], Dict):
+    for obj in tx_receipt:
+        if obj.get("exec_succeed"):
+            return True, obj.get("invoker"), obj.get("events")
     return False, None, None
 
 
@@ -68,14 +75,25 @@ def block_consuming() -> None:
                         # Ignore unrelated contracts
                         continue
 
-                    TMarketState.insert(market_id=contract_registed, creater=invoker,
-                                        create_height=next_consuming_height,
-                                        state_orders="[]", state_height=next_consuming_height,
-                                        state_timestamp=block_datetime, created_at=datetime.now(),
-                                        updated_at=datetime.now()).execute()
+                    if query_market_state_by_creater(invoker) is not None:
+                        # Ignored if invoker has already registered a contract before
+                        continue
+
+                    insert_market_state(contract_registed, invoker, next_consuming_height, block_datetime)
 
                 elif tx_type == TxType.TxTypeContractInvoke:
-                    pass
+                    exec_succeed, invoker, events = parse_tx_contract_invoke_result(tx_receipt)
+                    if not exec_succeed:
+                        # Ignore unsuccessful registration contracts
+                        continue
+
+                    for event in events:
+                        if query_market_state_by_market_id(event.get("contract_address")) is None:
+                            # Ignore if it's a contract we don't care about
+                            continue
+
+                        # TODO
+
                 else:
                     pass
 
