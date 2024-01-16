@@ -57,6 +57,7 @@ def create_app(config_name):
            'use_unicode': True,
            'charset': setting.DATABASE_CHARSET})
     database_proxy.initialize(db)
+    Application.database_proxy = database_proxy
 
     app = FastAPI()
     app.add_middleware(
