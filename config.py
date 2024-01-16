@@ -17,6 +17,7 @@ class DevelopmentConfig(BaseConfig):
     DATABASE_PORT = int(os.environ.get("DEV_DB_PORT", 3306))
     DATABASE_NAME = os.environ.get("DEV_DB_NAME")
     DATABASE_CHARSET = os.environ.get("DEV_DB_CHARSET")
+    API_URL = os.environ.get("DEV_API_URL")
 
 
 class ProductionConfig(BaseConfig):
@@ -27,6 +28,7 @@ class ProductionConfig(BaseConfig):
     DATABASE_PORT = int(os.environ.get("PROD_DB_PORT", 3306))
     DATABASE_NAME = os.environ.get("PROD_DB_NAME")
     DATABASE_CHARSET = os.environ.get("PROD_DB_CHARSET")
+    API_URL = os.environ.get("PROD_API_URL")
 
 
 configs = {
