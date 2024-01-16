@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
+import json
 import threading
 import time
 from typing import Dict
@@ -33,11 +34,18 @@ def parse_tx_contract_register_result(tx_receipt) -> (bool, Optional[str], Optio
     return False, None, None
 
 
-def parse_tx_contract_invoke_result(tx_receipt) -> (bool, Optional[str], Dict):
+def parse_tx_contract_invoke_result(tx_receipt) -> (bool, Optional[str], list):
     for obj in tx_receipt:
         if obj.get("exec_succeed"):
             return True, obj.get("invoker"), obj.get("events")
     return False, None, None
+
+
+def parse_orig_tx_contract_invoke(tx) -> Optional[Dict]:
+    for op in tx.get("operations"):
+        if op[0] == TxType.TxTypeContractInvoke.value:
+            return op[1]
+    return None
 
 
 def block_consuming() -> None:
@@ -87,12 +95,69 @@ def block_consuming() -> None:
                         # Ignore unsuccessful registration contracts
                         continue
 
-                    for event in events:
-                        if query_market_state_by_market_id(event.get("contract_address")) is None:
-                            # Ignore if it's a contract we don't care about
-                            continue
+                    op = parse_orig_tx_contract_invoke(tx)
+                    if op is None:
+                        continue
 
-                        # TODO
+                    market_state = query_market_state_by_market_id(op.get("contract_id")) is None
+                    if market_state is None:
+                        # Ignore if it's a contract we don't care about
+                        continue
+
+                    state_orders = json.loads(market_state.state_orders)
+                    if op.get("contract_api") == "cancelSellOrderPair":
+                        p = op.get("contract_arg").split(",")
+                        state_orders = [
+                            state_order for state_order in state_orders
+                            if not (
+                                    state_order.get("sellAsset") == p[0]
+                                    and state_order.get("buyAsset") == p[1]
+                            )
+                        ]
+                    elif op.get("contract_api") == "cancelAllOrder":
+                        state_orders = []
+                    elif op.get("contract_api") == "close":
+                        state_orders = []
+                    elif op.get("contract_api") == "putOnSellOrder":
+                        p = op.get("contract_arg").split(",")
+                        same_price = False
+                        for i in range(len(state_orders)):
+                            if state_orders[i].get("sellAsset") == p[0] \
+                                    and state_orders[i].get("buyAsset") == p[2] \
+                                    and state_orders[i].get("sellAssetLeft") / state_orders[i].get("buyAssetLeft") == \
+                                    int(p[1]) / int(p[3]):
+                                same_price = True
+                                state_orders[i]["sellAssetLeft"] = state_orders[i]["sellAssetLeft"] + int(p[1])
+                                state_orders[i]["buyAssetLeft"] = state_orders[i]["buyAssetLeft"] + int(p[3])
+                                break
+                        if not same_price:
+                            new_order = {
+                                "marketId": op.get("contract_id"),
+                                "orderCreateHeight": next_consuming_height,
+                                "orderCreateTx": tx_hash,
+                                "sellAsset": p[0],
+                                "sellAssetLeft": int(p[1]),
+                                "buyAsset": p[2],
+                                "buyAssetLeft": int(p[3]),
+                            }
+                            state_orders.append(new_order)
+                    elif op.get("contract_api") == "cancelSellOrder":
+                        p = op.get("contract_arg").split(",")
+                        state_orders = [
+                            state_order for state_order in state_orders
+                            if not (
+                                    state_order.get("sellAsset") == p[0]
+                                    and state_order.get("sellAssetLeft") == int(p[1])
+                                    and state_order.get("buyAsset") == p[2]
+                                    and state_order.get("buyAssetLeft") == int(p[3])
+                            )
+                        ]
+
+                    market_state.state_orders = json.dumps(state_orders)
+                    market_state.state_height = next_consuming_height
+                    market_state.state_timestamp = block_datetime
+
+                    TMarketState.update(market_state)
 
                 else:
                     pass
