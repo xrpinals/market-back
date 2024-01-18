@@ -20,32 +20,41 @@ class TGlobal(BaseModel):
         table_name = 't_global'
 
 
-class TMarketHistory(BaseModel):
-    buyer_address = CharField()
+class TMarket(BaseModel):
+    base_symbol = CharField(null=True)
     created_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])
+    market_create_datetime = DateTimeField()
+    market_create_height = IntegerField()
     market_id = CharField()
+    market_name = CharField(null=True)
+    market_status = IntegerField()
+    owner = CharField()
+    quote_symbol = CharField(null=True)
+    updated_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")], null=True)
+
+    class Meta:
+        table_name = 't_market'
+
+
+class TOrder(BaseModel):
+    buyer = CharField(null=True)
+    created_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")], null=True)
+    expect_buy_amount = DecimalField()
+    expect_buy_symbol = CharField()
+    fee = DecimalField(null=True)
+    market_id = CharField()
+    order_idx = IntegerField()
+    order_placed_datetime = DateTimeField()
+    order_placed_height = IntegerField()
+    order_placed_tx = CharField()
+    order_status = IntegerField()
     sell_amount = DecimalField()
-    sell_asset = CharField()
-    sell_price = DecimalField()
-    seller_address = CharField()
-    tx_hash = CharField()
-    tx_height = IntegerField()
-    tx_timestamp = DateTimeField()
-    updated_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])
+    sell_symbol = CharField()
+    seller = CharField()
+    trade_datetime = DateTimeField(null=True)
+    trade_height = IntegerField(null=True)
+    trade_tx = CharField(null=True)
+    updated_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")], null=True)
 
     class Meta:
-        table_name = 't_market_history'
-
-
-class TMarketState(BaseModel):
-    create_height = IntegerField()
-    created_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])
-    creater = CharField()
-    market_id = CharField()
-    state_height = IntegerField()
-    state_orders = TextField()
-    state_timestamp = DateTimeField()
-    updated_at = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])
-
-    class Meta:
-        table_name = 't_market_state'
+        table_name = 't_order'
