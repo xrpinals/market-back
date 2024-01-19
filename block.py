@@ -5,7 +5,6 @@ import threading
 import time
 from typing import Dict
 
-from const import OrderStatusPlaced, OrderStatusCanceled
 from crud import *
 from rpc import *
 from utils import *
@@ -13,20 +12,26 @@ from config import Application
 from enum import IntEnum
 
 
+class OpType(IntEnum):
+    OpTypeContractRegister = 76
+    OpTypeContractInvoke = 79
+    OpTypeTransferContract = 81
+
+
 class TxType(IntEnum):
     TxTypeContractRegister = 1
     TxTypeContractInvoke = 2
     TxTypeTransferContract = 3
-    TxTypeOther = 4
+    TxTypeOther = -1
 
 
 def parse_tx_type(tx) -> TxType:
     for op in tx.get("operations"):
-        if op[0] == TxType.TxTypeContractRegister.value:
+        if op[0] == OpType.OpTypeContractRegister.value:
             return TxType.TxTypeContractRegister
-        elif op[0] == TxType.TxTypeContractInvoke.value:
+        elif op[0] == OpType.OpTypeContractInvoke.value:
             return TxType.TxTypeContractInvoke
-        elif op[0] == TxType.TxTypeTransferContract.value:
+        elif op[0] == OpType.OpTypeTransferContract.value:
             return TxType.TxTypeTransferContract
     return TxType.TxTypeOther
 
@@ -61,14 +66,14 @@ def parse_first_event_by_name(events: list, event_name: str) -> Optional[Dict]:
 
 def parse_orig_tx_contract_invoke(tx) -> Optional[Dict]:
     for op in tx.get("operations"):
-        if op[0] == TxType.TxTypeContractInvoke.value:
+        if op[0] == OpType.OpTypeContractInvoke.value:
             return op[1]
     return None
 
 
 def parse_orig_tx_transfer_contract(tx) -> Optional[Dict]:
     for op in tx.get("operations"):
-        if op[0] == TxType.TxTypeTransferContract.value:
+        if op[0] == OpType.OpTypeTransferContract.value:
             return op[1]
     return None
 
@@ -95,7 +100,7 @@ def block_consuming() -> None:
                     # Ignore irrelevant transactions
                     continue
 
-                tx_receipt = http_get_contract_invoke_object(Application.setting.API_URL, next_consuming_height)
+                tx_receipt = http_get_contract_invoke_object(Application.setting.API_URL, tx_hash)
                 if tx_type == TxType.TxTypeContractRegister:
                     exec_succeed, invoker, contract_registed = parse_tx_contract_register_result(tx_receipt)
                     if not exec_succeed:
@@ -138,7 +143,7 @@ def block_consuming() -> None:
                         update_market_status(market_id=contract_id, old_market_status=MarketStatusClosed,
                                              new_market_status=MarketStatusOpen)
                     elif contract_api == "cancel_order":
-                        order_idx = int(contract_api)
+                        order_idx = int(contract_arg)
                         cancel_order(market_id=contract_id, order_idx=order_idx)
 
                 elif tx_type == TxType.TxTypeTransferContract:
@@ -180,7 +185,7 @@ def block_consuming() -> None:
                                 continue
                             fee = Decimal(ll[2])
 
-                        exchange_order(market_id=contract_id, order_idx=int(ll[1]), trade_tx=tx_hash, buyer=caller_addr,
+                        exchange_order(market_id=contract_id, order_idx=int(l[1]), trade_tx=tx_hash, buyer=caller_addr,
                                        fee=fee, trade_height=next_consuming_height,
                                        trade_datetime=block_datetime)
                     else:

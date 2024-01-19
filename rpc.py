@@ -67,4 +67,4 @@ def http_get_contract_printable_bytecode(url: str, contract_id: str):
         "params": [contract_id, ],
     }
     resp = requests.post(url=url, json=payload)
-    return resp.json().get("result").get("code_printable")
+    return resp.json().get("result").get("code_printable").get("printable_code")
