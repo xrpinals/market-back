@@ -30,3 +30,18 @@ PROD_DB_NAME = ""
 PROD_DB_CHARSET = "utf8"
 PROD_API_URL = ""
 ```
+
+
+### How to Run
+```
+pipenv shell
+pipenv lock
+pipenv install
+python run.py
+```
+
+
+### How to Stop
+```
+press ctrl-c to interrupt 
+```
