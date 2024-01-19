@@ -5,6 +5,7 @@ import threading
 import time
 from typing import Dict
 
+from const import OrderStatusPlaced, OrderStatusCanceled
 from crud import *
 from rpc import *
 from utils import *
@@ -44,9 +45,30 @@ def parse_tx_contract_invoke_result(tx_receipt) -> (bool, Optional[str], list):
     return False, None, None
 
 
+def parse_tx_transfer_contract_result(tx_receipt) -> (bool, Optional[str], list):
+    for obj in tx_receipt:
+        if obj.get("exec_succeed"):
+            return True, obj.get("invoker"), obj.get("events")
+    return False, None, None
+
+
+def parse_first_event_by_name(events: list, event_name: str) -> Optional[Dict]:
+    for event in events:
+        if event.get("event_name") == event_name:
+            return event
+    return None
+
+
 def parse_orig_tx_contract_invoke(tx) -> Optional[Dict]:
     for op in tx.get("operations"):
         if op[0] == TxType.TxTypeContractInvoke.value:
+            return op[1]
+    return None
+
+
+def parse_orig_tx_transfer_contract(tx) -> Optional[Dict]:
+    for op in tx.get("operations"):
+        if op[0] == TxType.TxTypeTransferContract.value:
             return op[1]
     return None
 
@@ -77,7 +99,7 @@ def block_consuming() -> None:
                 if tx_type == TxType.TxTypeContractRegister:
                     exec_succeed, invoker, contract_registed = parse_tx_contract_register_result(tx_receipt)
                     if not exec_succeed:
-                        # Ignore unsuccessful registration contracts
+                        # Ignore unsuccessful contract registering
                         continue
 
                     printable_bytecode = http_get_contract_printable_bytecode(Application.setting.API_URL,
@@ -86,20 +108,83 @@ def block_consuming() -> None:
                         # Ignore unrelated contracts
                         continue
 
-
+                    insert_new_market(market_id=contract_registed, owner=invoker, create_height=next_consuming_height,
+                                      create_datetime=block_datetime)
                 elif tx_type == TxType.TxTypeContractInvoke:
                     exec_succeed, invoker, events = parse_tx_contract_invoke_result(tx_receipt)
                     if not exec_succeed:
-                        # Ignore unsuccessful registration contracts
+                        # Ignore unsuccessful contract invoking
                         continue
 
                     op = parse_orig_tx_contract_invoke(tx)
                     if op is None:
                         continue
 
-                elif tx_type == TxType.TxTypeTransferContract:
-                    pass
+                    contract_id = op.get("contract_id")
+                    contract_api = op.get("contract_api")
+                    contract_arg = op.get("contract_arg")
 
+                    if contract_api == "open_market":
+                        l = contract_arg.split(",")
+                        if len(l) != 2:
+                            continue
+
+                        market_name = "-".join(l)
+                        open_market(market_id=contract_id, market_name=market_name, base_symbol=l[0], quote_symbol=l[1])
+                    elif contract_api == "close_market":
+                        update_market_status(market_id=contract_id, old_market_status=MarketStatusOpen,
+                                             new_market_status=MarketStatusClosed)
+                    elif contract_api == "reopen_market":
+                        update_market_status(market_id=contract_id, old_market_status=MarketStatusClosed,
+                                             new_market_status=MarketStatusOpen)
+                    elif contract_api == "cancel_order":
+                        order_idx = int(contract_api)
+                        cancel_order(market_id=contract_id, order_idx=order_idx)
+
+                elif tx_type == TxType.TxTypeTransferContract:
+                    exec_succeed, invoker, events = parse_tx_transfer_contract_result(tx_receipt)
+                    if not exec_succeed:
+                        # Ignore unsuccessful contract transfering to
+                        continue
+
+                    op = parse_orig_tx_transfer_contract(tx)
+                    if op is None:
+                        continue
+
+                    contract_id = op.get("contract_id")
+                    caller_addr = op.get("caller_addr")
+                    param = op.get("param")
+                    l = param.split(",")
+                    if len(l) not in (2, 3):
+                        continue
+
+                    if l[0] == "SELL":
+                        event = parse_first_event_by_name(events, "PlaceOrder")
+                        if event is not None:
+                            ll = event.get("event_arg").split(",")
+                            if len(ll) != 6:
+                                continue
+
+                            insert_new_order(market_id=contract_id, order_idx=int(ll[1]), seller=caller_addr,
+                                             sell_symbol=ll[2], sell_amount=Decimal(ll[3]),
+                                             expect_buy_symbol=ll[4],
+                                             expect_buy_amount=Decimal(ll[5]), order_placed_tx=tx_hash,
+                                             order_placed_height=next_consuming_height,
+                                             order_placed_datetime=block_datetime)
+                    elif l[0] == "BUY":
+                        fee = Decimal(0)
+                        event = parse_first_event_by_name(events, "ExchangeFee")
+                        if event is not None:
+                            ll = event.get("event_arg").split(",")
+                            if len(ll) != 3:
+                                continue
+                            fee = Decimal(ll[2])
+
+                        exchange_order(market_id=contract_id, order_idx=int(ll[1]), trade_tx=tx_hash, buyer=caller_addr,
+                                       fee=fee, trade_height=next_consuming_height,
+                                       trade_datetime=block_datetime)
+                    else:
+                        pass
                 else:
                     pass
 
