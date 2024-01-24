@@ -14,14 +14,16 @@ class Asset(object):
 
 
 class MarketSummary(object):
-    def __init__(self, symbol: str, price: Decimal, volume_latest_24hour: Decimal, volume_total: Decimal,
-                 total_supply: Decimal, market_cap: Decimal, holders: int):
+    def __init__(self, symbol: str, market_id: str, market_name: str, price: Decimal, volume_latest_24hour: Decimal,
+                 volume_total: Decimal, total_supply: Decimal, market_cap: Decimal, holders: int):
         self.symbol = symbol
-        self.price = price
-        self.volume_latest_24hour = volume_latest_24hour
-        self.volume_total = volume_total
-        self.total_supply = total_supply
-        self.market_cap = market_cap
+        self.market_id = market_id
+        self.market_name = market_name
+        self.price = "%.08f" % price
+        self.volume_latest_24hour = "%.08f" % volume_latest_24hour
+        self.volume_total = "%.08f" % volume_total
+        self.total_supply = "%.08f" % total_supply
+        self.market_cap = "%.08f" % market_cap
         self.holders = holders
 
 

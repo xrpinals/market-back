@@ -74,24 +74,23 @@ def market_statistics() -> None:
                 else:
                     volume_total = Decimal(0.0)
 
-                total_supply = Decimal(symbol2asset[r.base_symbol].current_supply) / Decimal(
-                    10 ** symbol2asset[r.base_symbol].precision)
+                total_supply = Decimal(symbol2asset[r.base_symbol].current_supply)
+                market_cap = price * total_supply
 
-                market_cap = price * Decimal(symbol2asset[r.quote_symbol].current_supply) / Decimal(
-                    10 ** symbol2asset[r.quote_symbol].precision)
-
-                market_summary = MarketSummary(symbol=r.base_symbol, price=price,
-                                               volume_latest_24hour=volume_latest_24hour,
+                market_summary = MarketSummary(symbol=r.base_symbol, market_id=r.market_id, market_name=r.market_name,
+                                               price=price, volume_latest_24hour=volume_latest_24hour,
                                                volume_total=volume_total, total_supply=total_supply,
                                                market_cap=market_cap, holders=symbol2holder.get(r.base_symbol))
                 markets_summary[r.base_symbol] = market_summary
 
-        if Application.statistics_thread_running:
-            Cache.id2asset = id2asset
-            Cache.symbol2asset = symbol2asset
-            Cache.symbol2holder = symbol2holder
-            Cache.markets_summary = markets_summary
-            time.sleep(5)
+        Cache.id2asset = id2asset
+        Cache.symbol2asset = symbol2asset
+        Cache.symbol2holder = symbol2holder
+        Cache.markets_summary = markets_summary
+        wait_idx = 0
+        while Application.statistics_thread_running and wait_idx < 30:
+            time.sleep(1)
+            wait_idx = wait_idx + 1
 
 
 def run_market_statistics_thread() -> None:
