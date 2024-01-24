@@ -2,13 +2,18 @@
 # encoding: utf-8
 from abc import ABC
 
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from peewee import SENTINEL, MySQLDatabase, InterfaceError  # type: ignore
 from playhouse.shortcuts import ReconnectMixin  # type: ignore
 from fastapi.middleware.cors import CORSMiddleware
+
+from api.order_api import orderRouter
+from api.summary_api import summaryRouter
 from db import database_proxy  # type: ignore
 
 from config import configs, Application, DevelopmentConfig
+
+apiRouter = APIRouter()
 
 
 class ReconnectMixinNew(ReconnectMixin):
@@ -60,6 +65,10 @@ def create_app(config_name: str) -> FastAPI:
     Application.database_proxy = database_proxy
 
     app = FastAPI()
+    apiRouter.include_router(prefix="/summary", router=summaryRouter, tags=['summary'])
+    apiRouter.include_router(prefix="/order", router=orderRouter, tags=['order'])
+    app.include_router(prefix="/api", router=apiRouter)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

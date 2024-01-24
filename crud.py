@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # encoding: utf-8
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 from decimal import Decimal
 
 from const import MarketStatusOpen, MarketStatusClosed, OrderStatusPlaced, OrderStatusCanceled, OrderStatusExchanged
 from db import *
+from peewee import fn  # type: ignore
 
 
 def query_next_consume_height() -> Optional[TGlobal]:
@@ -52,3 +53,20 @@ def exchange_order(market_id: str, order_idx: int, trade_tx: str, buyer: str, fe
     TOrder.update(trade_tx=trade_tx, buyer=buyer, fee=fee, trade_height=trade_height, trade_datetime=trade_datetime,
                   order_status=OrderStatusExchanged).where(TOrder.market_id == market_id, TOrder.order_idx == order_idx,
                                                            TOrder.order_status == OrderStatusPlaced).execute()
+
+
+def get_latest_traded_order(market_id: str) -> Optional[TOrder]:
+    return TOrder.select().where(TOrder.market_id == market_id, TOrder.order_status == OrderStatusExchanged).order_by(
+        TOrder.trade_height.desc()).first()
+
+
+def get_latest_24hour_volume(market_id: str) -> int:
+    return TOrder.select(fn.SUM(TOrder.expect_buy_amount)).where(TOrder.market_id == market_id,
+                                                                 TOrder.order_status == OrderStatusExchanged,
+                                                                 TOrder.trade_datetime >= datetime.now() - timedelta(
+                                                                     days=1)).scalar()
+
+
+def get_total_volume(market_id: str) -> int:
+    return TOrder.select(fn.SUM(TOrder.expect_buy_amount)).where(TOrder.market_id == market_id,
+                                                                 TOrder.order_status == OrderStatusExchanged).scalar()

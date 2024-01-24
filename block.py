@@ -83,7 +83,7 @@ def block_consuming() -> None:
         latest_height = http_get_block_height(Application.setting.API_URL)
         next_consuming_height = int(query_next_consume_height().value)
 
-        if next_consuming_height > latest_height - 3:
+        if next_consuming_height > latest_height - 1:
             time.sleep(3)
             continue
 

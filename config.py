@@ -47,3 +47,5 @@ class Application(object):
     otc_ex_bytecode_hex: str = ""
     consuming_thread: Optional[Thread] = None
     consuming_thread_running: bool = False
+    statistics_thread: Optional[Thread] = None
+    statistics_thread_running: bool = False

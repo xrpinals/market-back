@@ -68,3 +68,25 @@ def http_get_contract_printable_bytecode(url: str, contract_id: str):
     }
     resp = requests.post(url=url, json=payload)
     return resp.json().get("result").get("code_printable").get("printable_code")
+
+
+def http_get_object(url: str, obj_id: str):
+    payload = {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "method": "get_object",
+        "params": [obj_id, ],
+    }
+    resp = requests.post(url=url, json=payload)
+    return resp.json().get("result")
+
+
+def http_get_asset_imp(url: str, symbol: str):
+    payload = {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "method": "get_asset_imp",
+        "params": [symbol, ],
+    }
+    resp = requests.post(url=url, json=payload)
+    return resp.json().get("result")
