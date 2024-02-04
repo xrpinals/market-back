@@ -36,6 +36,6 @@ def api_query_orders(query: OrderQuery):
             scheme = scheme.order_by(TOrder.order_placed_datetime.desc())
 
     total_count = scheme.count()
-    scheme = scheme.offset(query.offset).limit(query.limit)
-    return dict(data=dict(total_count=total_count, result=[model_to_dict(r) for r in scheme.execute()]), retCode=200,
+    scheme = scheme.offset(query.page).limit(query.rows)
+    return dict(data=dict(total=total_count, rows=[model_to_dict(r) for r in scheme.execute()]), retCode=200,
                 retMsg="")

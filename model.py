@@ -10,8 +10,8 @@ OrderDesc = 1
 
 
 class PageArgsQuery(BaseModel):
-    offset: int = Field(default=0, ge=0, description="offset should >= 0")
-    limit: int = Field(default=10, ge=0, description="limit should >= 0")
+    page: int = Field(default=0, ge=0, description="page should >= 0")
+    rows: int = Field(default=10, ge=0, description="rows should >= 0")
 
 
 class OrderQuery(PageArgsQuery):
