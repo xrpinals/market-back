@@ -8,4 +8,4 @@ summaryRouter = APIRouter()
 
 @summaryRouter.get("/all_markets")
 def api_all_markets():
-    return [k for k in Cache.markets_summary.values()]
+    return dict(data=[k for k in Cache.markets_summary.values()], retCode=200, retMsg="")
