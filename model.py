@@ -10,7 +10,7 @@ OrderDesc = 1
 
 
 class PageArgsQuery(BaseModel):
-    page: int = Field(default=0, ge=0, description="page should >= 0")
+    page: int = Field(default=1, ge=1, description="page should >= 1")
     rows: int = Field(default=10, ge=0, description="rows should >= 0")
 
 
