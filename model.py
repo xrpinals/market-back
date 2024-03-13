@@ -16,7 +16,9 @@ class PageArgsQuery(BaseModel):
 
 class OrderQuery(PageArgsQuery):
     market_id: Optional[str] = Field(default=None)
+    seller_or_buyer: Optional[str] = Field(default=None)
     seller: Optional[str] = Field(default=None)
+    buyer: Optional[str] = Field(default=None)
     status: list[int]
     order_by: str
     # 0: asc

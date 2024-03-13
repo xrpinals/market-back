@@ -17,9 +17,15 @@ def api_query_orders(query: OrderQuery):
         query.market_id = query.market_id.lstrip().rstrip()
         scheme = scheme.where(TOrder.market_id == query.market_id)
 
-    if query.seller is not None and len(query.seller) != 0:
+    if query.seller_or_buyer is not None and len(query.seller_or_buyer) != 0:
+        query.seller_or_buyer = query.seller_or_buyer.lstrip().rstrip()
+        scheme = scheme.where(TOrder.seller == query.seller_or_buyer | TOrder.buyer == query.seller_or_buyer)
+    elif query.seller is not None and len(query.seller) != 0:
         query.seller = query.seller.lstrip().rstrip()
         scheme = scheme.where(TOrder.seller == query.seller)
+    elif query.buyer is not None and len(query.buyer) != 0:
+        query.buyer = query.buyer.lstrip().rstrip()
+        scheme = scheme.where(TOrder.buyer == query.buyer)
 
     if len(query.status) != 0:
         scheme = scheme.where(TOrder.order_status.in_(query.status))
