@@ -19,7 +19,7 @@ def api_query_orders(query: OrderQuery):
 
     if query.seller_or_buyer is not None and len(query.seller_or_buyer) != 0:
         query.seller_or_buyer = query.seller_or_buyer.lstrip().rstrip()
-        scheme = scheme.where(TOrder.seller == query.seller_or_buyer | TOrder.buyer == query.seller_or_buyer)
+        scheme = scheme.where((TOrder.seller == query.seller_or_buyer) | (TOrder.buyer == query.seller_or_buyer))
     elif query.seller is not None and len(query.seller) != 0:
         query.seller = query.seller.lstrip().rstrip()
         scheme = scheme.where(TOrder.seller == query.seller)
